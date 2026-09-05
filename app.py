@@ -22,6 +22,7 @@ CHOICES = {
     "보": "✋",
 }
 
+# 각 선택이 이길 수 있는 상대의 선택
 WINNING_RULES = {
     "가위": "보",
     "바위": "가위",
@@ -32,6 +33,15 @@ WINNING_RULES = {
 # --------------------------------------------------
 # 세션 상태 초기화
 # --------------------------------------------------
+# st.session_state에 저장된 값은 버튼을 눌러
+# Streamlit 화면이 다시 실행되어도 유지됩니다.
+
+if "user_score" not in st.session_state:
+    st.session_state.user_score = 0
+
+if "computer_score" not in st.session_state:
+    st.session_state.computer_score = 0
+
 if "user_choice" not in st.session_state:
     st.session_state.user_choice = None
 
@@ -41,46 +51,43 @@ if "computer_choice" not in st.session_state:
 if "result" not in st.session_state:
     st.session_state.result = None
 
-if "wins" not in st.session_state:
-    st.session_state.wins = 0
-
-if "losses" not in st.session_state:
-    st.session_state.losses = 0
-
-if "draws" not in st.session_state:
-    st.session_state.draws = 0
-
 
 # --------------------------------------------------
 # 게임 관련 함수
 # --------------------------------------------------
 def play_game(user_choice):
     """사용자의 선택을 받아 가위바위보 게임을 진행합니다."""
+
     computer_choice = random.choice(list(CHOICES.keys()))
 
+    # 무승부: 점수를 변경하지 않습니다.
     if user_choice == computer_choice:
         result = "draw"
-        st.session_state.draws += 1
+
+    # 사용자 승리: 사용자 점수를 1점 증가시킵니다.
     elif WINNING_RULES[user_choice] == computer_choice:
         result = "win"
-        st.session_state.wins += 1
+        st.session_state.user_score += 1
+
+    # 컴퓨터 승리: 컴퓨터 점수를 1점 증가시킵니다.
     else:
         result = "lose"
-        st.session_state.losses += 1
+        st.session_state.computer_score += 1
 
+    # 이번 게임의 선택과 결과를 세션 상태에 저장합니다.
     st.session_state.user_choice = user_choice
     st.session_state.computer_choice = computer_choice
     st.session_state.result = result
 
 
-def reset_game():
-    """게임 기록을 초기화합니다."""
+def reset_score():
+    """점수와 마지막 게임 결과를 모두 초기화합니다."""
+
+    st.session_state.user_score = 0
+    st.session_state.computer_score = 0
     st.session_state.user_choice = None
     st.session_state.computer_choice = None
     st.session_state.result = None
-    st.session_state.wins = 0
-    st.session_state.losses = 0
-    st.session_state.draws = 0
 
 
 # --------------------------------------------------
@@ -127,33 +134,48 @@ st.markdown(
 
         .score-board {
             display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin: 1.2rem 0 2rem;
+            gap: 16px;
+            max-width: 520px;
+            margin: 1.2rem auto 2rem;
+            padding: 18px;
+            border: 1px solid #e2e7f0;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 8px 24px rgba(36, 48, 80, 0.09);
         }
 
         .score-item {
-            min-width: 105px;
-            padding: 12px 15px;
-            border: 1px solid #e2e7f0;
-            border-radius: 16px;
-            background-color: rgba(255, 255, 255, 0.92);
-            box-shadow: 0 6px 20px rgba(36, 48, 80, 0.08);
-            color: #303b55;
+            flex: 1;
             text-align: center;
         }
 
         .score-label {
             color: #747f98;
-            font-size: 0.85rem;
-            font-weight: 700;
+            font-size: 0.9rem;
+            font-weight: 800;
         }
 
         .score-number {
             margin-top: 3px;
             color: #17223b;
-            font-size: 1.5rem;
+            font-size: 2rem;
             font-weight: 900;
+        }
+
+        .score-divider {
+            color: #8d96aa;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        .score-guide {
+            margin-top: -1.3rem;
+            margin-bottom: 1.8rem;
+            color: #929bad;
+            font-size: 0.8rem;
+            text-align: center;
         }
 
         .section-title {
@@ -316,13 +338,12 @@ st.markdown(
             }
 
             .score-board {
-                gap: 7px;
+                gap: 10px;
+                padding: 15px 10px;
             }
 
-            .score-item {
-                min-width: 0;
-                flex: 1;
-                padding: 10px 6px;
+            .score-number {
+                font-size: 1.7rem;
             }
 
             .battle-board {
@@ -353,7 +374,7 @@ st.markdown(
 
 
 # --------------------------------------------------
-# 제목과 점수판
+# 제목
 # --------------------------------------------------
 st.markdown(
     '<div class="main-title">✊ 가위바위보 챌린지</div>',
@@ -365,23 +386,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
+# --------------------------------------------------
+# 점수판
+# --------------------------------------------------
 st.markdown(
     f"""
     <div class="score-board">
         <div class="score-item">
-            <div class="score-label">🏆 승리</div>
-            <div class="score-number">{st.session_state.wins}</div>
+            <div class="score-label">🙋 사용자</div>
+            <div class="score-number">{st.session_state.user_score}</div>
         </div>
 
-        <div class="score-item">
-            <div class="score-label">😅 패배</div>
-            <div class="score-number">{st.session_state.losses}</div>
-        </div>
+        <div class="score-divider">:</div>
 
         <div class="score-item">
-            <div class="score-label">🤝 무승부</div>
-            <div class="score-number">{st.session_state.draws}</div>
+            <div class="score-label">💻 컴퓨터</div>
+            <div class="score-number">{st.session_state.computer_score}</div>
         </div>
+    </div>
+
+    <div class="score-guide">
+        사용자 점수 : 컴퓨터 점수
     </div>
     """,
     unsafe_allow_html=True,
@@ -399,16 +425,31 @@ st.markdown(
 scissors_column, rock_column, paper_column = st.columns(3)
 
 with scissors_column:
-    if st.button("✌️ 가위", use_container_width=True):
-        play_game("가위")
+    st.button(
+        "✌️ 가위",
+        key="scissors_button",
+        on_click=play_game,
+        args=("가위",),
+        use_container_width=True,
+    )
 
 with rock_column:
-    if st.button("✊ 바위", use_container_width=True):
-        play_game("바위")
+    st.button(
+        "✊ 바위",
+        key="rock_button",
+        on_click=play_game,
+        args=("바위",),
+        use_container_width=True,
+    )
 
 with paper_column:
-    if st.button("✋ 보", use_container_width=True):
-        play_game("보")
+    st.button(
+        "✋ 보",
+        key="paper_button",
+        on_click=play_game,
+        args=("보",),
+        use_container_width=True,
+    )
 
 
 # --------------------------------------------------
@@ -445,17 +486,17 @@ if (
     if st.session_state.result == "win":
         result_class = "result-win"
         result_title = "🎉 승리!"
-        result_message = "멋진 선택이에요. 컴퓨터를 이겼습니다!"
+        result_message = "사용자 점수가 1점 증가했습니다!"
 
     elif st.session_state.result == "lose":
         result_class = "result-lose"
         result_title = "😢 패배!"
-        result_message = "아쉽네요. 다시 한번 도전해 보세요!"
+        result_message = "컴퓨터 점수가 1점 증가했습니다."
 
     else:
         result_class = "result-draw"
         result_title = "🤝 무승부!"
-        result_message = "같은 선택을 했어요. 한 판 더 해볼까요?"
+        result_message = "무승부이므로 점수는 그대로입니다."
 
     st.markdown(
         f"""
@@ -480,7 +521,7 @@ else:
 
 
 # --------------------------------------------------
-# 기록 초기화
+# 점수 초기화 버튼
 # --------------------------------------------------
 st.write("")
 
@@ -488,11 +529,16 @@ reset_column_1, reset_column_2, reset_column_3 = st.columns([1, 1.2, 1])
 
 with reset_column_2:
     st.button(
-        "🔄 기록 초기화",
-        on_click=reset_game,
+        "🔄 점수 초기화",
+        key="reset_score_button",
+        on_click=reset_score,
         use_container_width=True,
     )
 
+
+# --------------------------------------------------
+# 하단 안내
+# --------------------------------------------------
 st.markdown(
     '<div class="footer">가위바위보 챌린지 · Streamlit Web App</div>',
     unsafe_allow_html=True,
