@@ -29,6 +29,8 @@ WINNING_RULES = {
     "보": "바위",
 }
 
+WIN_TARGET = 3
+
 
 # --------------------------------------------------
 # 세션 상태 초기화
@@ -51,6 +53,15 @@ if "computer_choice" not in st.session_state:
 if "result" not in st.session_state:
     st.session_state.result = None
 
+if "game_over" not in st.session_state:
+    st.session_state.game_over = False
+
+if "winner" not in st.session_state:
+    st.session_state.winner = None
+
+if "user_win_streak" not in st.session_state:
+    st.session_state.user_win_streak = 0
+
 
 # --------------------------------------------------
 # 게임 관련 함수
@@ -58,21 +69,36 @@ if "result" not in st.session_state:
 def play_game(user_choice):
     """사용자의 선택을 받아 가위바위보 게임을 진행합니다."""
 
+    # 경기 종료 후에는 더 이상 진행하지 않습니다.
+    if st.session_state.game_over:
+        return
+
     computer_choice = random.choice(list(CHOICES.keys()))
 
     # 무승부: 점수를 변경하지 않습니다.
     if user_choice == computer_choice:
         result = "draw"
+        st.session_state.user_win_streak = 0
 
     # 사용자 승리: 사용자 점수를 1점 증가시킵니다.
     elif WINNING_RULES[user_choice] == computer_choice:
         result = "win"
         st.session_state.user_score += 1
+        st.session_state.user_win_streak += 1
 
     # 컴퓨터 승리: 컴퓨터 점수를 1점 증가시킵니다.
     else:
         result = "lose"
         st.session_state.computer_score += 1
+        st.session_state.user_win_streak = 0
+
+    # 5판 3선승제: 누가 먼저 3승을 달성하면 경기 종료
+    if st.session_state.user_score >= WIN_TARGET:
+        st.session_state.game_over = True
+        st.session_state.winner = "user"
+    elif st.session_state.computer_score >= WIN_TARGET:
+        st.session_state.game_over = True
+        st.session_state.winner = "computer"
 
     # 이번 게임의 선택과 결과를 세션 상태에 저장합니다.
     st.session_state.user_choice = user_choice
@@ -88,6 +114,9 @@ def reset_score():
     st.session_state.user_choice = None
     st.session_state.computer_choice = None
     st.session_state.result = None
+    st.session_state.game_over = False
+    st.session_state.winner = None
+    st.session_state.user_win_streak = 0
 
 
 # --------------------------------------------------
@@ -407,11 +436,14 @@ st.markdown(
     </div>
 
     <div class="score-guide">
-        사용자 점수 : 컴퓨터 점수
+        5판 3선승제 · 먼저 3승하면 경기 종료
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+if st.session_state.user_win_streak > 0:
+    st.info(f"🔥 현재 사용자 연승: {st.session_state.user_win_streak}연승")
 
 
 # --------------------------------------------------
@@ -431,6 +463,7 @@ with scissors_column:
         on_click=play_game,
         args=("가위",),
         use_container_width=True,
+        disabled=st.session_state.game_over,
     )
 
 with rock_column:
@@ -440,6 +473,7 @@ with rock_column:
         on_click=play_game,
         args=("바위",),
         use_container_width=True,
+        disabled=st.session_state.game_over,
     )
 
 with paper_column:
@@ -449,6 +483,7 @@ with paper_column:
         on_click=play_game,
         args=("보",),
         use_container_width=True,
+        disabled=st.session_state.game_over,
     )
 
 
@@ -519,9 +554,15 @@ else:
         unsafe_allow_html=True,
     )
 
+if st.session_state.game_over:
+    if st.session_state.winner == "user":
+        st.success("🏆 축하합니다! 사용자님이 3승으로 경기를 승리했습니다!")
+    elif st.session_state.winner == "computer":
+        st.warning("🤖 컴퓨터가 먼저 3승을 달성했습니다. 다음 경기에서 승리해 보세요!")
+
 
 # --------------------------------------------------
-# 점수 초기화 버튼
+# 새 경기 시작 버튼
 # --------------------------------------------------
 st.write("")
 
@@ -529,7 +570,7 @@ reset_column_1, reset_column_2, reset_column_3 = st.columns([1, 1.2, 1])
 
 with reset_column_2:
     st.button(
-        "🔄 점수 초기화",
+        "🆕 새 경기 시작",
         key="reset_score_button",
         on_click=reset_score,
         use_container_width=True,
